@@ -1,0 +1,11 @@
+user: admin@admin.com
+pass: 123456
+
+
+user====
+user: user@user.com
+pass: 123456 
+
+
+
+database name: multiauth
