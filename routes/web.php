@@ -22,4 +22,8 @@ Auth::routes();
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::get('admin/home', [App\Http\Controllers\HomeController::class, 'adminHome'])->name('admin.home');
-// Route::get('admin/home', [HomeController::class, 'adminHome'])->name('admin.home')->middleware('is_admin');
+
+Route::get('/image', [App\Http\Controllers\FileController::class, 'create']);
+Route::post('/image', [App\Http\Controllers\FileController::class, 'store']);
+// Route::get('image', [FileController::class, 'create']); 
+// Route::post('image', [FileController::class, 'store']);

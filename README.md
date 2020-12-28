@@ -1,62 +1,195 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+#How to upload Multiple Image in laravel 8
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+###Step 1: Install Composer in your system
 
-## About Laravel
+###Step 2: Download laravel using composer package
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+`composer create-project --prefer-dist laravel/laravel multipleimageupload`
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+###Step 3: Configure your database in .env file
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+`DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=multipleImage
+DB_USERNAME=root
+DB_PASSWORD=`
 
-## Learning Laravel
+###Step:4 Now, run command for creating model and migration
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+`php artisan make:model file -m`
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+###Update your migration field for inserting image path== database/migrations/2020_12_28_060509_create_files_table.php
 
-## Laravel Sponsors
+`public function up()
+    {
+        Schema::create('files', function (Blueprint $table) {
+            $table->id();
+            $table->string('filenames');
+            $table->timestamps();
+        });
+    }`
+	
+###Now, run migrate command.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+`php artisan migrate`
 
-### Premium Partners
+###Step 5: Now, update your file model which is present inside of app/models/file.php
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/)**
-- **[OP.GG](https://op.gg)**
+`<?php
 
-## Contributing
+namespace App\Models;
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-## Code of Conduct
+class File extends Model
+{
+    use HasFactory;
+    
+    protected $fillable = [
+        'filenames'
+    ];
+  
+    public function setFilenamesAttribute($value)
+    {
+        $this->attributes['filenames'] = json_encode($value);
+    }
+}`
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+###Step 6: Here, we will upload web.php.
 
-## Security Vulnerabilities
+`Route::get('/image', [App\Http\Controllers\FileController::class, 'create']);
+Route::post('/image', [App\Http\Controllers\FileController::class, 'store']);`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+###Step 7: Now Create controller and update code.
 
-## License
+`php artisan make:controller FileController`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+###Update method in controller
+
+`<?php
+  
+namespace App\Http\Controllers;
+  
+use Illuminate\Http\Request;
+use App\Models\File;
+  
+class FileController extends Controller
+{
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        return view('imageUpload');
+    }
+  
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        $this->validate($request, [
+                'filenames' => 'required',
+                'filenames.*' => 'image'
+        ]);
+  
+        $files = [];
+        if($request->hasfile('filenames'))
+         {
+            foreach($request->file('filenames') as $file)
+            {
+                $name = time().rand(1,100).'.'.$file->extension();
+                $file->move(public_path('files'), $name);  
+                $files[] = $name;  
+            }
+         }
+  
+         $file= new File();
+         $file->filenames = $files;
+         $file->save();
+  
+        return back()->with('success', 'Your images has been successfully added');
+    }
+}`
+
+###Step 8: Create imageUpload.blade inside of resources/views/imageUpload.blade.php and put code inside of imageUpload.blade.php
+
+`<html lang="en">
+<head>
+  <title>Laravel 8 Multiple Image Upload Real Programmer</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+  <div class="jumbotron text-center" style="margin-bottom:0">
+  <h2>Laravel 8 Multiple Image Upload Real Programmer</h2>
+</div>
+<br>
+<div class="container">
+@if (count($errors) > 0)
+<div class="alert alert-danger">
+    <strong>Sorry!</strong> Here have some issue please check<br><br>
+    <ul>
+      @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+      @endforeach
+    </ul>
+</div>
+@endif
+  
+@if(session('success'))
+<div class="alert alert-success">
+  {{ session('success') }}
+</div> 
+@endif
+  
+ 
+<form method="post" action="{{url('image')}}" enctype="multipart/form-data">
+    @csrf
+  
+    <div class="input-group realprocode control-group lst increment" >
+      <input type="file" name="filenames[]" class="myfrm form-control">
+      <div class="input-group-btn"> 
+        <button class="btn btn-success" type="button"> <i class="fldemo glyphicon glyphicon-plus"></i>Add</button>
+      </div>
+    </div>
+    <div class="clone hide">
+      <div class="realprocode control-group lst input-group" style="margin-top:10px">
+        <input type="file" name="filenames[]" class="myfrm form-control">
+        <div class="input-group-btn"> 
+          <button class="btn btn-danger" type="button"><i class="fldemo glyphicon glyphicon-remove"></i> Remove</button>
+        </div>
+      </div>
+    </div>
+  
+    <button type="submit" class="btn btn-success" style="margin-top:10px">Submit</button>
+  
+</form>        
+</div>
+  
+<script type="text/javascript">
+    $(document).ready(function() {
+      $(".btn-success").click(function(){ 
+          var lsthmtl = $(".clone").html();
+          $(".increment").after(lsthmtl);
+      });
+      $("body").on("click",".btn-danger",function(){ 
+          $(this).parents(".realprocode").remove();
+      });
+    });
+</script>
+</body>
+</html>`
+
+###Step 9: Now run server
+
+`php artisan serve`
+
+`http://127.0.0.1:8000/image`
+
